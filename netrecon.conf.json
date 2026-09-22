@@ -1,0 +1,22 @@
+{
+  "_help": "Default config for netrecon. Every key is optional; CLI flags override the file. `netrecon scan` auto-discovers ./netrecon.conf.json or ~/.config/netrecon/netrecon.conf.json.",
+  "subnets": [
+    { "cidr": "192.168.100.0/24", "vlan": "100", "label": "Homelab" },
+    { "cidr": "192.168.101.0/24", "vlan": "101", "label": "IoT" }
+  ],
+  "ports": [22, 53, 80, 139, 443, 445, 554, 1880, 1883, 2375, 2376, 3000, 3306, 3389, 5000, 5432, 5601, 5900, 6053, 6379, 6668, 8000, 8006, 8080, 8081, 8083, 8086, 8089, 8123, 8443, 8554, 8883, 8888, 8899, 9000, 9001, 9090, 9091, 9100, 9200, 9443, 10000, 54321],
+  "http_ports": [80, 443, 3000, 8000, 8080, 8123, 8443, 8883, 9000, 9090, 9200],
+  "connect_timeout": 0.35,
+  "ping_timeout": 1.0,
+  "banner_timeout": 0.9,
+  "max_ping_workers": 120,
+  "max_scan_workers": 256,
+  "max_banner_workers": 100,
+  "online_oui": true,
+  "exclude_ips": [],
+  "services": {
+    "9000": "Portainer",
+    "8123": "Home Assistant",
+    "1883": "MQTT broker"
+  }
+}

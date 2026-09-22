@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netrecon"
+version = "0.1.0"
+description = "Generalized pure-stdlib LAN network mapper: ICMP sweep, ARP/MAC capture with OUI vendor resolution, threaded TCP connect scan, banner grabbing, SNMPv1 ARP walker, deterministic Markdown reports. No root required."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "sam", email = "sam@home.lab" }]
+keywords = ["network", "scanning", "homelab", "vlan", "arp", "snmp", "inventory", "iot"]
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Networking :: Monitoring",
+]
+
+[project.scripts]
+netrecon = "netrecon.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+netrecon = ["data/*.txt"]
