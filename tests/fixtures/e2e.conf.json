@@ -1,0 +1,25 @@
+{
+  "_help": "Offline E2E fixture config. Scans the loopback mock network (see tests/mocknet.py). High ports only, offline OUI DB, no exclusions.",
+  "subnets": [
+    { "cidr": "127.0.0.1/32", "vlan": "900", "label": "Mock-Lab" },
+    { "cidr": "127.0.0.2/32", "vlan": "901", "label": "Mock-IoT" }
+  ],
+  "ports": [41022, 41080, 41883, 46668, 48123, 49999],
+  "http_ports": [41080, 48123],
+  "connect_timeout": 0.3,
+  "ping_timeout": 0.5,
+  "banner_timeout": 0.4,
+  "max_ping_workers": 8,
+  "max_scan_workers": 16,
+  "max_banner_workers": 8,
+  "oui_file": "tests/fixtures/manuf.txt",
+  "online_oui": false,
+  "exclude_ips": [],
+  "services": {
+    "41022": "SSH",
+    "41080": "HTTP",
+    "41883": "MQTT",
+    "46668": "Tuya smart-device",
+    "48123": "HTTP"
+  }
+}

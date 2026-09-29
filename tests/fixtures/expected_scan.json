@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "tool": "netrecon",
+    "version": "0.1.0",
+    "subnets": [
+      {
+        "cidr": "127.0.0.1/32",
+        "vlan": "900",
+        "label": "Mock-Lab"
+      },
+      {
+        "cidr": "127.0.0.2/32",
+        "vlan": "901",
+        "label": "Mock-IoT"
+      }
+    ],
+    "ports": [
+      41022,
+      41080,
+      41883,
+      46668,
+      48123,
+      49999
+    ],
+    "oui_entries": 4,
+    "online_oui_fallback": false
+  },
+  "hosts": {
+    "127.0.0.1": {
+      "ip": "127.0.0.1",
+      "vlan": "900",
+      "mac": "",
+      "vendor": "",
+      "icmp": true,
+      "ttl": 64,
+      "os_hint": "Linux/Unix/Android (ttl<=64)",
+      "open_ports": {
+        "41022": "SSH-2.0-OpenSSH_fixture",
+        "41080": "HTTP/1.0 200 OK | mock-nginx/1.2.3 | Fixture Web One",
+        "41883": ""
+      },
+      "port_count": 3
+    },
+    "127.0.0.2": {
+      "ip": "127.0.0.2",
+      "vlan": "901",
+      "mac": "",
+      "vendor": "",
+      "icmp": true,
+      "ttl": 64,
+      "os_hint": "Linux/Unix/Android (ttl<=64)",
+      "open_ports": {
+        "46668": "",
+        "48123": "HTTP/1.0 200 OK | mock-hass/0.1 | Fixture IoT Hub"
+      },
+      "port_count": 2
+    }
+  }
+}

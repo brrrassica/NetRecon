@@ -1,0 +1,6 @@
+# Fixture OUI DB for netrecon offline tests (Wireshark manuf format).
+# A handful of entries only -- keeps vendor resolution deterministic.
+00:11:32	Fixture Vendor Alpha
+E8:31:CD	Espressif Inc.
+A4:CF:12	Raspberry Pi Trading Ltd
+BC:24:11	Proxmox Server Solutions GmbH
