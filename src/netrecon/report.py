@@ -29,6 +29,8 @@ SERVICE_GUESS = {
 def _svc_guess(port: int, extra: dict) -> str:
     if port in extra:
         return str(extra[port])
+    if str(port) in extra:
+        return str(extra[str(port)])
     return SERVICE_GUESS.get(port, "?")
 
 

@@ -28,8 +28,6 @@ def _cmd_scan(args: argparse.Namespace) -> int:
         overrides["subnets"] = [_parse_subnet(s) for s in args.subnets]
     if args.ports:
         overrides["ports"] = _parse_ports(args.ports)
-    if args.extra_port:
-        overrides["ports"] = (overrides.get("ports") or []) + args.extra_port
     if args.http_ports:
         overrides["http_ports"] = _parse_ports(args.http_ports)
     if args.connect_timeout is not None:
@@ -50,6 +48,8 @@ def _cmd_scan(args: argparse.Namespace) -> int:
         overrides["exclude_ips"] = list(args.exclude)
 
     cfg = load_config(args.config, overrides)
+    if args.extra_port:
+        cfg["ports"] = sorted(set(cfg["ports"]) | set(args.extra_port))
     data = scan(cfg, quiet=args.quiet)
     save_results(data, args.out)
     print(f"[*] Results -> {args.out}  ({data['_meta']['duration_s']}s)")
