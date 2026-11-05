@@ -9,11 +9,16 @@ per-run.
 from __future__ import annotations
 
 import re
-import socket
+import urllib.request
 from importlib import resources
 from pathlib import Path
 
 OUI_RE = re.compile(r"^([0-9A-Fa-f]{6})")
+
+
+def urlopen(url: str, timeout: float):
+    """Thin seam over urllib so the online lookup can be stubbed in tests."""
+    return urllib.request.urlopen(url, timeout=timeout)
 
 
 def default_manuf_path() -> Path:
@@ -84,19 +89,19 @@ class OuiResolver:
     @staticmethod
     def _online_lookup(oui: str) -> str:
         try:
-            with socket.create_connection(("api.macvendors.com", 80), timeout=5) as s:
-                s.sendall(
-                    f"GET /{oui} HTTP/1.1\r\nHost: api.macvendors.com\r\n"
-                    "Connection: close\r\n\r\n".encode()
-                )
-                data = b""
-                while True:
-                    chunk = s.recv(2048)
-                    if not chunk:
-                        break
-                    data += chunk
-            m = re.search(rb"\r\n\r\n(.*)", data, re.S)
-            body = m.group(1).decode(errors="replace").strip() if m else ""
+            resp = urlopen(f"https://api.macvendors.com/{oui}", timeout=5)
+            try:
+                status = getattr(resp, "status", None)
+                if not isinstance(status, int):
+                    getcode = getattr(resp, "getcode", None)
+                    status = getcode() if callable(getcode) else 200
+                if isinstance(status, int) and status != 200:
+                    return ""
+                body = resp.read().decode(errors="replace").strip()
+            finally:
+                close = getattr(resp, "close", None)
+                if callable(close):
+                    close()
             if body and "<html" not in body.lower() and "error" not in body.lower():
                 return body
         except OSError:

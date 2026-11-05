@@ -14,7 +14,7 @@ import json
 import sys
 
 from . import __version__
-from .config import dump_default_config
+from .config import dump_default_config, validate_ports
 from .scanner import load_results, save_results, scan
 from .report import report_file
 from .snmp import run_snmp
@@ -26,10 +26,13 @@ def _cmd_scan(args: argparse.Namespace) -> int:
     overrides = {}
     if args.subnets:
         overrides["subnets"] = [_parse_subnet(s) for s in args.subnets]
-    if args.ports:
-        overrides["ports"] = _parse_ports(args.ports)
-    if args.http_ports:
-        overrides["http_ports"] = _parse_ports(args.http_ports)
+    try:
+        if args.ports:
+            overrides["ports"] = _parse_ports(args.ports)
+        if args.http_ports:
+            overrides["http_ports"] = _parse_ports(args.http_ports)
+    except argparse.ArgumentTypeError as e:
+        raise SystemExit(f"[!] {e}")
     if args.connect_timeout is not None:
         overrides["connect_timeout"] = args.connect_timeout
     if args.ping_timeout is not None:
@@ -107,11 +110,17 @@ def _parse_ports(s: str) -> list[int]:
         part = part.strip()
         if not part:
             continue
-        if "-" in part:
-            lo, _, hi = part.partition("-")
-            out.extend(range(int(lo), int(hi) + 1))
-        else:
-            out.append(int(part))
+        try:
+            if "-" in part:
+                lo_s, _, hi_s = part.partition("-")
+                lo, hi = int(lo_s), int(hi_s)
+                if lo > hi:
+                    raise argparse.ArgumentTypeError(f"invalid port range: {part!r}")
+                out.extend(validate_ports(range(lo, hi + 1)))
+            else:
+                out.extend(validate_ports([int(part)]))
+        except ValueError as e:
+            raise argparse.ArgumentTypeError(str(e)) from None
     return out
 
 

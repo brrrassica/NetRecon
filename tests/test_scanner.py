@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mocknet
 import normalize as norm
 from netrecon.config import load_config
-from netrecon.scanner import scan
+from netrecon.scanner import scan, try_connect
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "tests", "fixtures")
@@ -107,6 +107,13 @@ class ScanE2ETest(unittest.TestCase):
         cfg = load_config(CONF)
         data = scan(cfg, quiet=True)
         self.assertIn("192.168.100.126", data["_meta"]["exclude_ips"])  # this box
+
+    def test_invalid_config_port_rejected(self):
+        with self.assertRaises(SystemExit):
+            scan({"ports": [65536]}, quiet=True)
+
+    def test_try_connect_out_of_range_port_is_closed(self):
+        self.assertFalse(try_connect("127.0.0.1", 65536, 0.05))
 
 
 if __name__ == "__main__":
