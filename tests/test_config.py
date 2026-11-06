@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import tempfile
@@ -36,6 +37,16 @@ class TestParsePorts(unittest.TestCase):
 
     def test_mixed_and_whitespace(self):
         self.assertEqual(_parse_ports("22, 8000-8001, 443"), [22, 8000, 8001, 443])
+
+    def test_rejects_out_of_range(self):
+        for spec in ("0", "65536", "1-65536", "8000-7999"):
+            with self.subTest(spec=spec):
+                with self.assertRaises(argparse.ArgumentTypeError):
+                    _parse_ports(spec)
+
+    def test_accepts_tcp_bounds(self):
+        self.assertEqual(_parse_ports("1"), [1])
+        self.assertEqual(_parse_ports("65535"), [65535])
 
 
 class TestMerge(unittest.TestCase):

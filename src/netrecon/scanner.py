@@ -19,6 +19,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import __version__
+from .config import validate_ports
 from .oui import OuiResolver
 
 
@@ -98,7 +99,7 @@ def try_connect(ip: str, port: int, timeout: float) -> bool:
     try:
         s.connect((ip, port))
         return True
-    except OSError:
+    except (OSError, OverflowError):
         return False
     finally:
         s.close()
@@ -141,6 +142,10 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
 
     subnets = cfg.get("subnets", []) or []
     ports = cfg.get("ports") or [22, 80, 443]
+    try:
+        ports = validate_ports(ports)
+    except (TypeError, ValueError) as e:
+        raise SystemExit(f"[!] invalid ports in config: {e}")
     http_ports = set(cfg.get("http_ports") or [80, 443])
     ct = float(cfg.get("connect_timeout", 0.35))
     pt = float(cfg.get("ping_timeout", 1.0))

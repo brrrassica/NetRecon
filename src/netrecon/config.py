@@ -42,6 +42,9 @@ DEFAULT_PORTS = [
 
 DEFAULT_HTTP_PORTS = [80, 443, 3000, 8000, 8080, 8123, 8443, 8883, 9000, 9090, 9200]
 
+PORT_MIN = 1
+PORT_MAX = 65535
+
 DEFAULTS: dict[str, Any] = {
     "subnets": [],
     "ports": list(DEFAULT_PORTS),
@@ -61,6 +64,21 @@ CONFIG_HINTS = [
     "./netrecon.conf.json",
     os.path.expanduser("~/.config/netrecon/netrecon.conf.json"),
 ]
+
+
+# -- Validation helpers -----------------------------------------------------
+
+def validate_port(port: int) -> int:
+    """Return port if it is a scanable TCP port, else raise ValueError."""
+    if (not isinstance(port, int) or isinstance(port, bool)
+            or not PORT_MIN <= port <= PORT_MAX):
+        raise ValueError(f"port out of range {PORT_MIN}-{PORT_MAX}: {port!r}")
+    return port
+
+
+def validate_ports(ports) -> list[int]:
+    """Validate an iterable of TCP ports; raise ValueError on the first bad one."""
+    return [validate_port(port) for port in ports]
 
 
 # -- Loading helpers --------------------------------------------------------
