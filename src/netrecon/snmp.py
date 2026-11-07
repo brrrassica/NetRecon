@@ -13,7 +13,7 @@ import re
 import socket
 import sys
 
-OID_SYSDESCR = "1.3.6.1.2.1.1.1.0"
+OID_SYSDESCR = "1.3.6.1.2.1.1.1"
 OID_IPNETTOMEDIA = "1.3.6.1.2.1.4.22.1.2"
 
 
@@ -143,7 +143,7 @@ def snmp_walk(target: str, community: str, base_oid: str,
         oid, tag, val = vbs[0]
         if tag == 0x82 and val == b"\x00\x00":   # endOfMibView
             break
-        if not oid.startswith(base_oid.split(".0")[0]):
+        if oid != base_oid and not oid.startswith(base_oid + "."):
             break
         results.append((oid, tag, val))
         cur = oid

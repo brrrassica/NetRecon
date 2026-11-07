@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 from netrecon.snmp import (
+    OID_SYSDESCR,
     build_getnext,
     decode_oid,
     enc_int,
@@ -14,7 +15,75 @@ from netrecon.snmp import (
     enc_str,
     parse_response,
     read_arp_table,
+    run_snmp,
+    snmp_walk,
 )
+
+
+def _response(oid: str, tag: int, val: bytes) -> bytes:
+    """Encode a one-varbind GET-NEXT-RESPONSE for a stub agent."""
+    val_tlv = bytes([tag]) + enc_len(len(val)) + val
+    vb_body = enc_oid(oid) + val_tlv
+    vb = b"\x30" + enc_len(len(vb_body)) + vb_body
+    vblist = b"\x30" + enc_len(len(vb)) + vb
+    pdu_body = enc_int(1) + enc_int(0) + enc_int(0) + vblist
+    pdu = b"\xa2" + enc_len(len(pdu_body)) + pdu_body
+    inner = enc_int(0) + enc_str("public") + pdu
+    return b"\x30" + enc_len(len(inner)) + inner
+
+
+class _FakeSocket:
+    def __init__(self, responses):
+        self.responses = list(responses)
+
+    def settimeout(self, timeout):
+        pass
+
+    def sendto(self, data, addr):
+        pass
+
+    def recvfrom(self, bufsize):
+        return self.responses.pop(0), ("127.0.0.1", 161)
+
+    def close(self):
+        pass
+
+
+class TestSnmpWalk(unittest.TestCase):
+    def test_walk_column_stops_at_lexicographic_successor(self):
+        # sysDescr column -> sysDescr.0, then sibling sysObjectID.0
+        sock = _FakeSocket([
+            _response("1.3.6.1.2.1.1.1.0", 0x04, b"stub agent"),
+            _response("1.3.6.1.2.1.1.2.0", 0x06, b"\x2b\x06\x01"),
+        ])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock):
+            res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
+        self.assertEqual([oid for oid, _tag, _val in res],
+                         ["1.3.6.1.2.1.1.1.0"])
+        self.assertEqual(res[0][2], b"stub agent")
+
+    def test_walk_prefix_is_exact_subtree(self):
+        # base ...1.1.1 must not match the unrelated sibling ...1.1.10.0
+        sock = _FakeSocket([
+            _response("1.3.6.1.2.1.1.10.0", 0x04, b"wrong subtree"),
+        ])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock):
+            res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
+        self.assertEqual(res, [])
+
+    def test_run_snmp_reaches_arp_read(self):
+        with mock.patch(
+            "netrecon.snmp.snmp_walk",
+            return_value=[("1.3.6.1.2.1.1.1.0", 0x04, b"stub agent")],
+        ) as walk, mock.patch(
+            "netrecon.snmp.read_arp_table", return_value={}
+        ) as arp:
+            rc = run_snmp("127.0.0.1", timeout=0.1)
+        self.assertEqual(rc, 0)
+        walk.assert_called_once_with(
+            "127.0.0.1", "public", OID_SYSDESCR, timeout=0.1
+        )
+        arp.assert_called_once_with("127.0.0.1", "public", 0.1)
 
 
 class TestBerEncode(unittest.TestCase):
