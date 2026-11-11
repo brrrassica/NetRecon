@@ -97,6 +97,8 @@ def merge(base: dict, overlay: dict) -> dict:
 def find_config(explicit: str | None) -> str | None:
     """Resolve config path: --config > $NETRECON_CONFIG > ./conf > ~/.config/conf."""
     if explicit:
+        if not os.path.isfile(explicit):
+            raise SystemExit(f"[!] config not found: {explicit}")
         return explicit
     env = os.environ.get("NETRECON_CONFIG")
     if env and os.path.isfile(env):
@@ -117,7 +119,7 @@ def load_config(path: str | None = None, overrides: dict | None = None) -> dict:
                 file_cfg = json.load(fh)
             cfg = merge(cfg, file_cfg)
         except FileNotFoundError:
-            pass
+            raise SystemExit(f"[!] config not found: {res}")
         except json.JSONDecodeError as e:
             raise SystemExit(f"[!] config parse error in {res}: {e}")
     if overrides:
