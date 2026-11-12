@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netrecon"
-version = "0.1.0"
+version = "0.1.1"
 description = "Generalized pure-stdlib LAN network mapper: ICMP sweep, ARP/MAC capture with OUI vendor resolution, threaded TCP connect scan, banner grabbing, SNMPv1 ARP walker, deterministic Markdown reports. No root required."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -108,7 +108,7 @@ Auto-discovered from `./netrecon.conf.json` or
 ```json
 {
   "_meta": {
-    "tool": "netrecon", "version": "0.1.0",
+    "tool": "netrecon", "version": "0.1.1",
     "scanned_at": "2026-09-22T03:35:00", "duration_s": 12.4,
     "subnets": [{"cidr": "192.168.100.0/24", "vlan": "100", "label": "Homelab"}],
     "ports": [22, 53, 80],

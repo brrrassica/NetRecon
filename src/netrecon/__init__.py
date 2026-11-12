@@ -6,4 +6,4 @@ optionally walk an SNMPv1 ARP table on routed segments, and emit deterministic
 JSON + Markdown inventory reports. No root required.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

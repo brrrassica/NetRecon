@@ -1,7 +1,7 @@
 {
   "_meta": {
     "tool": "netrecon",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "subnets": [
       {
         "cidr": "127.0.0.1/32",
