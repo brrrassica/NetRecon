@@ -75,5 +75,32 @@ class TestReportGolden(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+class TestHostOrdering(unittest.TestCase):
+    def _assert_numeric_order(self, md, ips):
+        positions = [md.index(f"### {ip}") for ip in ips]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_wide_subnet_sorted_numerically(self):
+        hosts = {
+            "10.0.100.1": {},
+            "10.0.9.1": {},
+            "10.0.10.1": {},
+        }
+        md = generate_report({
+            "_meta": {"subnets": [{"cidr": "10.0.0.0/16", "label": "Wide"}]},
+            "hosts": hosts,
+        }, title="T")
+        self._assert_numeric_order(md, ["10.0.9.1", "10.0.10.1", "10.0.100.1"])
+
+    def test_leftover_hosts_sorted_numerically(self):
+        hosts = {
+            "10.0.100.1": {},
+            "10.0.9.1": {},
+            "10.0.10.1": {},
+        }
+        md = generate_report({"_meta": {}, "hosts": hosts}, title="T")
+        self._assert_numeric_order(md, ["10.0.9.1", "10.0.10.1", "10.0.100.1"])
+
+
 if __name__ == "__main__":
     unittest.main()

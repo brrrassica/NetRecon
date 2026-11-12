@@ -9,6 +9,7 @@ config (merged over the built-in guess map).
 from __future__ import annotations
 
 import datetime
+import ipaddress
 
 from .scanner import load_results
 
@@ -84,7 +85,6 @@ def generate_report(data: dict, extra_svcs: dict | None = None,
 
     # group hosts by subnet cidr so sections match config labels
     def net_of(ip: str, entry: dict):
-        import ipaddress
         return ipaddress.ip_address(ip) in ipaddress.ip_network(entry.get("cidr", ""), strict=False)
 
     sections: list[tuple[dict, list[tuple[str, dict]]]] = []
@@ -94,10 +94,13 @@ def generate_report(data: dict, extra_svcs: dict | None = None,
             (ip, h) for ip, h in hosts.items()
             if ip not in exclude and net_of(ip, entry)
         ]
-        member.sort(key=lambda t: int(t[0].split(".")[-1]))
+        member.sort(key=lambda t: ipaddress.ip_address(t[0]))
         sections.append((entry, member))
         seen |= {ip for ip, _ in member}
-    leftover = sorted((ip, h) for ip, h in hosts.items() if ip not in seen and ip not in exclude)
+    leftover = sorted(
+        ((ip, h) for ip, h in hosts.items() if ip not in seen and ip not in exclude),
+        key=lambda t: ipaddress.ip_address(t[0]),
+    )
 
     # ---- summary
     rows.append("## Summary")
