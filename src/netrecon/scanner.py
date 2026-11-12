@@ -141,12 +141,15 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
     log = (lambda *a: print(*a)) if not quiet else (lambda *a: None)
 
     subnets = cfg.get("subnets", []) or []
-    ports = cfg.get("ports") or [22, 80, 443]
+    ports = cfg.get("ports")
+    if ports is None:
+        ports = [22, 80, 443]
     try:
         ports = validate_ports(ports)
     except (TypeError, ValueError) as e:
         raise SystemExit(f"[!] invalid ports in config: {e}")
-    http_ports = set(cfg.get("http_ports") or [80, 443])
+    raw_http_ports = cfg.get("http_ports")
+    http_ports = set(raw_http_ports if raw_http_ports is not None else [80, 443])
     ct = float(cfg.get("connect_timeout", 0.35))
     pt = float(cfg.get("ping_timeout", 1.0))
     bt = float(cfg.get("banner_timeout", 0.9))

@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 from netrecon.snmp import (
+    OID_IPNETTOMEDIA,
     OID_SYSDESCR,
     build_getnext,
     decode_oid,
@@ -70,6 +71,26 @@ class TestSnmpWalk(unittest.TestCase):
         with mock.patch("netrecon.snmp.socket.socket", return_value=sock):
             res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
         self.assertEqual(res, [])
+
+    def test_walk_stops_on_zero_length_endofmibview(self):
+        # A real endOfMibView exception has tag 0x82 and a zero-length value.
+        sock = _FakeSocket([
+            _response("1.3.6.1.2.1.4.22.1.2.1", 0x82, b""),
+            _response("1.3.6.1.2.1.4.22.1.2.1.1.1.1.1", 0x04, b"\x00" * 6),
+        ])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock):
+            res = snmp_walk("127.0.0.1", "public", OID_IPNETTOMEDIA, timeout=0.1)
+        self.assertEqual(res, [])
+
+    def test_walk_stops_on_non_monotonic_oid(self):
+        oid = "1.3.6.1.2.1.4.22.1.2.1.1.1.1.1"
+        sock = _FakeSocket([
+            _response(oid, 0x04, b"\x00" * 6),
+            _response(oid, 0x04, b"\x00" * 6),
+        ])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock):
+            res = snmp_walk("127.0.0.1", "public", OID_IPNETTOMEDIA, timeout=0.1)
+        self.assertEqual(len(res), 1)
 
     def test_run_snmp_reaches_arp_read(self):
         with mock.patch(

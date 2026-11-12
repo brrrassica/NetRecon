@@ -102,5 +102,19 @@ class TestHostOrdering(unittest.TestCase):
         self._assert_numeric_order(md, ["10.0.9.1", "10.0.10.1", "10.0.100.1"])
 
 
+class TestOverlappingSubnets(unittest.TestCase):
+    def test_host_appears_in_only_first_matching_subnet(self):
+        hosts = {"10.0.0.5": {}}
+        md = generate_report({
+            "_meta": {"subnets": [
+                {"cidr": "10.0.0.0/24", "label": "Narrow"},
+                {"cidr": "10.0.0.0/16", "label": "Wide"},
+            ]},
+            "hosts": hosts,
+        }, title="T")
+        self.assertEqual(md.count("### 10.0.0.5"), 1)
+        self.assertIn("**Hosts discovered:** 1", md)
+
+
 if __name__ == "__main__":
     unittest.main()
