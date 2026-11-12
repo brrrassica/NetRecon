@@ -161,7 +161,10 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
         cidr = entry.get("cidr") or entry.get("subnet")
         if not cidr:
             continue
-        net = ipaddress.ip_network(cidr, strict=False)
+        try:
+            net = ipaddress.ip_network(cidr, strict=False)
+        except (TypeError, ValueError) as e:
+            raise SystemExit(f"[!] invalid subnet {cidr!r}: {e}")
         vlan = str(entry.get("vlan") or entry.get("label") or "")
         subnet_meta.append({"cidr": cidr, "vlan": vlan, "label": entry.get("label", "")})
         targets.extend(str(h) for h in net.hosts())

@@ -112,6 +112,11 @@ class ScanE2ETest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             scan({"ports": [65536]}, quiet=True)
 
+    def test_invalid_config_subnet_rejected(self):
+        with self.assertRaises(SystemExit) as ctx:
+            scan({"subnets": [{"cidr": "not-a-cidr"}]}, quiet=True)
+        self.assertIn("invalid subnet", str(ctx.exception))
+
     def test_try_connect_out_of_range_port_is_closed(self):
         self.assertFalse(try_connect("127.0.0.1", 65536, 0.05))
 

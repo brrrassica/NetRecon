@@ -78,6 +78,12 @@ class TestLoadConfig(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_missing_explicit_config_rejected(self):
+        path = os.path.join(tempfile.gettempdir(), "netrecon_definitely_missing.json")
+        with self.assertRaises(SystemExit) as ctx:
+            load_config(path, {})
+        self.assertIn("config not found", str(ctx.exception))
+
     def test_fixture_config_loads(self):
         cfg = load_config(os.path.join(FIX, "e2e.conf.json"))
         self.assertEqual(len(cfg["subnets"]), 2)
