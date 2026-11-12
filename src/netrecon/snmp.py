@@ -141,7 +141,9 @@ def snmp_walk(target: str, community: str, base_oid: str,
         if not vbs:
             break
         oid, tag, val = vbs[0]
-        if tag == 0x82 and val == b"\x00\x00":   # endOfMibView
+        if tag == 0x82:   # endOfMibView
+            break
+        if tuple(int(p) for p in oid.split(".")) <= tuple(int(p) for p in cur.split(".")):
             break
         if oid != base_oid and not oid.startswith(base_oid + "."):
             break

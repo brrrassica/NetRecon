@@ -120,6 +120,40 @@ class ScanE2ETest(unittest.TestCase):
     def test_try_connect_out_of_range_port_is_closed(self):
         self.assertFalse(try_connect("127.0.0.1", 65536, 0.05))
 
+    def test_empty_ports_are_not_replaced_by_defaults(self):
+        cfg = {
+            "subnets": [{"cidr": "127.0.0.1/32"}],
+            "ports": [],
+            "http_ports": [],
+            "oui_file": os.path.join(FIX, "manuf.txt"),
+            "online_oui": False,
+        }
+        from netrecon import scanner as sc
+        with mock.patch.object(sc, "local_ips", return_value=set()), \
+                mock.patch.object(sc, "ping_host", return_value=("127.0.0.1", True, 64)), \
+                mock.patch.object(sc, "capture_arp", return_value={}):
+            data = scan(cfg, quiet=True)
+        self.assertEqual(data["_meta"]["ports"], [])
+        self.assertEqual(data["hosts"]["127.0.0.1"]["open_ports"], {})
+
+    def test_empty_http_ports_are_passed_through(self):
+        cfg = {
+            "subnets": [{"cidr": "127.0.0.1/32"}],
+            "ports": [80],
+            "http_ports": [],
+            "oui_file": os.path.join(FIX, "manuf.txt"),
+            "online_oui": False,
+        }
+        from netrecon import scanner as sc
+        with mock.patch.object(sc, "local_ips", return_value=set()), \
+                mock.patch.object(sc, "ping_host", return_value=("127.0.0.1", True, 64)), \
+                mock.patch.object(sc, "try_connect", return_value=True), \
+                mock.patch.object(sc, "banner_grab", return_value="") as bg, \
+                mock.patch.object(sc, "capture_arp", return_value={}):
+            scan(cfg, quiet=True)
+        bg.assert_called_once()
+        self.assertEqual(bg.call_args.args[3], set())
+
 
 if __name__ == "__main__":
     unittest.main()
