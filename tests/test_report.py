@@ -102,6 +102,30 @@ class TestHostOrdering(unittest.TestCase):
         self._assert_numeric_order(md, ["10.0.9.1", "10.0.10.1", "10.0.100.1"])
 
 
+class TestUnmappedHostsSummary(unittest.TestCase):
+    def test_unmapped_hosts_counted_in_summary(self):
+        md = generate_report({
+            "_meta": {"subnets": [{"cidr": "10.0.0.0/24", "label": "Lab"}]},
+            "hosts": {
+                "10.0.0.5": {"open_ports": {"80": "HTTP/1.0 200 OK"}},
+                "10.0.1.7": {},
+                "192.168.1.9": {"open_ports": {"443": ""}},
+            },
+        }, title="T")
+        self.assertIn("## Unmapped hosts", md)
+        self.assertIn(
+            "**Hosts discovered:** 3 (1 in-scope) — 2 with open service ports", md)
+
+    def test_raw_host_map_without_meta_counted(self):
+        md = generate_report({
+            "10.0.0.5": {"open_ports": {"80": "HTTP/1.0 200 OK"}},
+            "10.0.0.6": {},
+        }, title="T")
+        self.assertIn("## Unmapped hosts", md)
+        self.assertIn(
+            "**Hosts discovered:** 2 (0 in-scope) — 1 with open service ports", md)
+
+
 class TestOverlappingSubnets(unittest.TestCase):
     def test_host_appears_in_only_first_matching_subnet(self):
         hosts = {"10.0.0.5": {}}

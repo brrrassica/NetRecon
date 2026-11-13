@@ -105,9 +105,13 @@ def generate_report(data: dict, extra_svcs: dict | None = None,
     # ---- summary
     rows.append("## Summary")
     rows.append("")
-    total = sum(len(m) for _, m in sections)
-    with_ports = sum(1 for _, m in sections for _, h in m if h.get("open_ports"))
-    rows.append(f"- **Hosts discovered:** {total} ({sum(len(m) for _, m in sections)} in-scope) — {with_ports} with open service ports")
+    in_scope = sum(len(m) for _, m in sections)
+    total = in_scope + len(leftover)
+    with_ports = (
+        sum(1 for _, m in sections for _, h in m if h.get("open_ports"))
+        + sum(1 for _, h in leftover if h.get("open_ports"))
+    )
+    rows.append(f"- **Hosts discovered:** {total} ({in_scope} in-scope) — {with_ports} with open service ports")
     rows.append(f"- **MAC vendors resolved:** {sum(1 for _, h in hosts.items() if h.get('vendor'))}")
     rows.append("")
 
