@@ -19,7 +19,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import __version__
-from .config import validate_ports
+from .config import validate_ports, validate_timeout
 from .oui import OuiResolver
 
 
@@ -94,15 +94,17 @@ def capture_arp() -> dict[str, str]:
 # --------------------------------------------------------------------------- port scan
 
 def try_connect(ip: str, port: int, timeout: float) -> bool:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(timeout)
+    s = None
     try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
         s.connect((ip, port))
         return True
-    except (OSError, OverflowError):
+    except (OSError, OverflowError, ValueError):
         return False
     finally:
-        s.close()
+        if s is not None:
+            s.close()
 
 
 def banner_grab(ip: str, port: int, timeout: float, http_ports: set[int], ua: str = "netrecon") -> str:
@@ -150,9 +152,12 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
         raise SystemExit(f"[!] invalid ports in config: {e}")
     raw_http_ports = cfg.get("http_ports")
     http_ports = set(raw_http_ports if raw_http_ports is not None else [80, 443])
-    ct = float(cfg.get("connect_timeout", 0.35))
-    pt = float(cfg.get("ping_timeout", 1.0))
-    bt = float(cfg.get("banner_timeout", 0.9))
+    try:
+        ct = validate_timeout(cfg.get("connect_timeout", 0.35), "connect_timeout")
+        pt = validate_timeout(cfg.get("ping_timeout", 1.0), "ping_timeout")
+        bt = validate_timeout(cfg.get("banner_timeout", 0.9), "banner_timeout")
+    except (TypeError, ValueError) as e:
+        raise SystemExit(f"[!] invalid timeout in config: {e}")
     n_ping = int(cfg.get("max_ping_workers", 120))
     n_scan = int(cfg.get("max_scan_workers", 256))
     n_banner = int(cfg.get("max_banner_workers", 100))
