@@ -27,6 +27,7 @@ Schema overview::
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -79,6 +80,19 @@ def validate_port(port: int) -> int:
 def validate_ports(ports) -> list[int]:
     """Validate an iterable of TCP ports; raise ValueError on the first bad one."""
     return [validate_port(port) for port in ports]
+
+
+def validate_timeout(value: Any, name: str = "timeout") -> float:
+    """Return a finite positive timeout in seconds, else raise ValueError."""
+    if isinstance(value, bool):
+        raise ValueError(f"invalid {name}: {value!r}")
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(f"invalid {name}: {value!r}") from None
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError(f"{name} must be a finite positive number: {value!r}")
+    return timeout
 
 
 # -- Loading helpers --------------------------------------------------------

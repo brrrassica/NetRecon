@@ -117,6 +117,17 @@ class ScanE2ETest(unittest.TestCase):
             scan({"subnets": [{"cidr": "not-a-cidr"}]}, quiet=True)
         self.assertIn("invalid subnet", str(ctx.exception))
 
+    def test_invalid_timeouts_rejected(self):
+        for key in ("connect_timeout", "ping_timeout", "banner_timeout"):
+            for value in (-1, 0, float("nan"), float("inf"), "nope"):
+                with self.subTest(key=key, value=value):
+                    with self.assertRaises(SystemExit):
+                        scan({"subnets": [{"cidr": "127.0.0.1/32"}],
+                              "ports": [], key: value}, quiet=True)
+
+    def test_try_connect_bad_timeout_is_closed(self):
+        self.assertFalse(try_connect("127.0.0.1", 22, -1))
+
     def test_try_connect_out_of_range_port_is_closed(self):
         self.assertFalse(try_connect("127.0.0.1", 65536, 0.05))
 

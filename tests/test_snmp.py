@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import unittest
 from unittest import mock
 
 from netrecon.snmp import (
     OID_IPNETTOMEDIA,
     OID_SYSDESCR,
+    SnmpParseError,
     build_getnext,
     decode_oid,
     enc_int,
@@ -15,6 +17,7 @@ from netrecon.snmp import (
     enc_oid,
     enc_str,
     parse_response,
+    parse_tlv,
     read_arp_table,
     run_snmp,
     snmp_walk,
@@ -167,6 +170,35 @@ class TestParseResponse(unittest.TestCase):
         self.assertEqual(got_oid, oid)
         self.assertEqual(got_tag, 0x05)
         self.assertEqual(got_val, b"")
+
+
+class TestTruncatedPackets(unittest.TestCase):
+    def test_tlv_requires_header(self):
+        for data in (b"", b"\x30"):
+            with self.subTest(data=data):
+                with self.assertRaises(SnmpParseError):
+                    parse_tlv(data)
+
+    def test_tlv_rejects_truncated_long_length(self):
+        with self.assertRaises(SnmpParseError):
+            parse_tlv(b"\x30\x81")
+
+    def test_response_rejects_truncated_outer_value(self):
+        # outer SEQUENCE claims 5 content bytes but only 2 follow
+        with self.assertRaises(SnmpParseError):
+            parse_response(b"\x30\x05\x02\x01")
+
+    def test_response_rejects_truncated_inner_tlv(self):
+        # outer value is itself a truncated long-form TLV header
+        with self.assertRaises(SnmpParseError):
+            parse_response(b"\x30\x02\x30\x81")
+
+    def test_walk_stops_cleanly_on_malformed_reply(self):
+        sock = _FakeSocket([b"\x30\x81"])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock), \
+                mock.patch("sys.stderr", new=io.StringIO()):
+            res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
+        self.assertEqual(res, [])
 
 
 class TestReadArpTable(unittest.TestCase):

@@ -69,18 +69,32 @@ def build_getnext(community: str, oid: str, reqid: int) -> bytes:
 
 # ---------------------------------------------------------------- BER decode
 
+class SnmpParseError(ValueError):
+    """Raised when an SNMP datagram is truncated or malformed."""
+
+
 def parse_tlv(data: bytes):
+    if len(data) < 2:
+        raise SnmpParseError("truncated TLV header")
     tag = data[0]
     l = data[1]
     hdr = 2
     if l & 0x80:
         n = l & 0x7F
+        if n == 0:
+            raise SnmpParseError("indefinite TLV length not supported")
+        if len(data) < 2 + n:
+            raise SnmpParseError("truncated TLV length")
         l = int.from_bytes(data[2:2 + n], "big")
         hdr = 2 + n
+    if hdr + l > len(data):
+        raise SnmpParseError("truncated TLV value")
     return tag, data[hdr:hdr + l], data[hdr + l:]
 
 
 def decode_oid(val: bytes) -> str:
+    if not val:
+        raise SnmpParseError("empty OID")
     parts = [val[0] // 40, val[0] % 40]
     n = 0
     for b in val[1:]:
@@ -137,7 +151,11 @@ def snmp_walk(target: str, community: str, base_oid: str,
             break
         finally:
             s.close()
-        vbs = parse_response(data)
+        try:
+            vbs = parse_response(data)
+        except SnmpParseError as e:
+            print(f"  [!] malformed SNMP reply: {e}", file=sys.stderr)
+            break
         if not vbs:
             break
         oid, tag, val = vbs[0]

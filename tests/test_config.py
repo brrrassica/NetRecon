@@ -8,7 +8,7 @@ import os
 import tempfile
 import unittest
 
-from netrecon.config import DEFAULTS, load_config, merge
+from netrecon.config import DEFAULTS, load_config, merge, validate_timeout
 from netrecon.cli import _parse_ports, _parse_subnet
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,6 +48,17 @@ class TestParsePorts(unittest.TestCase):
         self.assertEqual(_parse_ports("1"), [1])
         self.assertEqual(_parse_ports("65535"), [65535])
 
+
+class TestValidateTimeout(unittest.TestCase):
+    def test_accepts_positive_finite(self):
+        self.assertEqual(validate_timeout(0.5), 0.5)
+        self.assertEqual(validate_timeout("1.5"), 1.5)
+
+    def test_rejects_non_positive_or_non_finite(self):
+        for value in (-1, 0, float("nan"), float("inf"), "nope", None, 10 ** 400):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    validate_timeout(value)
 
 class TestMerge(unittest.TestCase):
     def test_scalar_overwrite(self):
