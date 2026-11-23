@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import normalize as norm
+from netrecon.cli import main as cli_main
 from netrecon.report import SERVICE_GUESS, _svc_guess, generate_report
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -138,6 +142,62 @@ class TestOverlappingSubnets(unittest.TestCase):
         }, title="T")
         self.assertEqual(md.count("### 10.0.0.5"), 1)
         self.assertIn("**Hosts discovered:** 1", md)
+
+
+class TestExcludedHostVendorSummary(unittest.TestCase):
+    def test_excluded_host_vendor_not_counted(self):
+        md = generate_report({
+            "_meta": {"exclude_ips": ["10.0.0.2"]},
+            "hosts": {
+                "10.0.0.1": {"vendor": "Acme"},
+                "10.0.0.2": {"vendor": "SecretCorp"},
+            },
+        }, title="T")
+        self.assertIn("**MAC vendors resolved:** 1", md)
+
+
+class TestReportCLIConfigDiscovery(unittest.TestCase):
+    def test_report_discovers_default_config(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "netrecon.conf.json").write_text(json.dumps({
+                "services": {"80": "CustomHTTP"},
+                "report_title": "MyTitle",
+            }), encoding="utf-8")
+            scan = {
+                "_meta": {"ports": [80]},
+                "hosts": {"10.0.0.1": {"open_ports": {"80": "HTTP/1.0 200 OK"}}},
+            }
+            (root / "scan.json").write_text(json.dumps(scan), encoding="utf-8")
+            old = os.getcwd()
+            try:
+                os.chdir(root)
+                rc = cli_main(["report", "--input", "scan.json", "--out", "out.md", "--quiet"])
+            finally:
+                os.chdir(old)
+            self.assertEqual(rc, 0)
+            md = (root / "out.md").read_text(encoding="utf-8")
+            self.assertIn("# MyTitle", md)
+            self.assertIn("`80` CustomHTTP", md)
+
+    def test_report_title_flag_overrides_discovered_config(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "netrecon.conf.json").write_text(json.dumps({
+                "report_title": "MyTitle",
+            }), encoding="utf-8")
+            (root / "scan.json").write_text(json.dumps({"_meta": {}, "hosts": {}}), encoding="utf-8")
+            old = os.getcwd()
+            try:
+                os.chdir(root)
+                rc = cli_main(["report", "--input", "scan.json", "--out", "out.md",
+                               "--title", "Override", "--quiet"])
+            finally:
+                os.chdir(old)
+            self.assertEqual(rc, 0)
+            md = (root / "out.md").read_text(encoding="utf-8")
+            self.assertIn("# Override", md)
+            self.assertNotIn("# MyTitle", md)
 
 
 if __name__ == "__main__":

@@ -112,7 +112,10 @@ def generate_report(data: dict, extra_svcs: dict | None = None,
         + sum(1 for _, h in leftover if h.get("open_ports"))
     )
     rows.append(f"- **Hosts discovered:** {total} ({in_scope} in-scope) — {with_ports} with open service ports")
-    rows.append(f"- **MAC vendors resolved:** {sum(1 for _, h in hosts.items() if h.get('vendor'))}")
+    rows.append(
+        f"- **MAC vendors resolved:** "
+        f"{sum(1 for _, m in sections for _, h in m if h.get('vendor')) + sum(1 for _, h in leftover if h.get('vendor'))}"
+    )
     rows.append("")
 
     for entry, member in sections:
