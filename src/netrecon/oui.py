@@ -13,7 +13,7 @@ import urllib.request
 from importlib import resources
 from pathlib import Path
 
-OUI_RE = re.compile(r"^([0-9A-Fa-f]{6})")
+OUI_RE = re.compile(r"[0-9A-Fa-f]{6}")
 
 
 def urlopen(url: str, timeout: float):
@@ -69,10 +69,10 @@ class OuiResolver:
         return len(self.db)
 
     def resolve(self, mac: str | None) -> str:
-        if not mac:
+        if not mac or not isinstance(mac, str):
             return ""
         oui = normalize_mac(mac)[:6]
-        if len(oui) != 6:
+        if not OUI_RE.fullmatch(oui):  # malformed MACs must not crash int()
             return ""
         if int(oui[:2], 16) & 0x02:  # locally administered / randomized
             return "Randomized/private MAC (not OUI-registered)"

@@ -52,6 +52,17 @@ class TestResolve(unittest.TestCase):
         self.assertEqual(self.r.resolve(""), "")
         self.assertEqual(self.r.resolve(None), "")
 
+    def test_malformed_mac_does_not_crash(self):
+        for mac in ("zz:zz:zz:zz:zz:zz", "bc-24-zz-71-a7-bf", "bc24.zz71.a7bf",
+                    "abc", 12345):
+            with self.subTest(mac=mac):
+                self.assertEqual(self.r.resolve(mac), "")
+
+    def test_malformed_mac_skips_online_lookup(self):
+        self.r.online = True
+        with mock.patch("netrecon.oui.urlopen", side_effect=AssertionError("should not look up")):
+            self.assertEqual(self.r.resolve("zz:zz:zz:zz:zz:zz"), "")
+
 
 class TestOnlineLookup(unittest.TestCase):
     def setUp(self):
