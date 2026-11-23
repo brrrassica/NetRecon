@@ -102,6 +102,8 @@ def decode_oid(val: bytes) -> str:
         if not b & 0x80:
             parts.append(n)
             n = 0
+    if len(val) > 1 and (val[-1] & 0x80):
+        raise SnmpParseError("unterminated OID subidentifier")
     return ".".join(str(p) for p in parts)
 
 

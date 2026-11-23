@@ -26,8 +26,14 @@ from netrecon.snmp import (
 
 def _response(oid: str, tag: int, val: bytes) -> bytes:
     """Encode a one-varbind GET-NEXT-RESPONSE for a stub agent."""
+    return _response_with_oid_bytes(enc_oid(oid)[2:], tag, val)
+
+
+def _response_with_oid_bytes(oid_bytes: bytes, tag: int, val: bytes) -> bytes:
+    """Same as _response, but with raw OID content (for malformed OIDs)."""
+    oid_tlv = b"\x06" + enc_len(len(oid_bytes)) + oid_bytes
     val_tlv = bytes([tag]) + enc_len(len(val)) + val
-    vb_body = enc_oid(oid) + val_tlv
+    vb_body = oid_tlv + val_tlv
     vb = b"\x30" + enc_len(len(vb_body)) + vb_body
     vblist = b"\x30" + enc_len(len(vb)) + vb
     pdu_body = enc_int(1) + enc_int(0) + enc_int(0) + vblist
@@ -140,6 +146,12 @@ class TestBerEncode(unittest.TestCase):
             self.assertEqual(tag, 0x06)
             self.assertEqual(decode_oid(body), oid)
 
+    def test_oid_rejects_unterminated_subidentifier(self):
+        for val in (b"\x2b\x81", b"\x2b\x80", b"\x2b\x01\x82"):
+            with self.subTest(val=val):
+                with self.assertRaises(SnmpParseError):
+                    decode_oid(val)
+
 
 class TestBuildGetnext(unittest.TestCase):
     def test_packet_structure(self):
@@ -195,6 +207,13 @@ class TestTruncatedPackets(unittest.TestCase):
 
     def test_walk_stops_cleanly_on_malformed_reply(self):
         sock = _FakeSocket([b"\x30\x81"])
+        with mock.patch("netrecon.snmp.socket.socket", return_value=sock), \
+                mock.patch("sys.stderr", new=io.StringIO()):
+            res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
+        self.assertEqual(res, [])
+
+    def test_walk_stops_cleanly_on_unterminated_oid(self):
+        sock = _FakeSocket([_response_with_oid_bytes(b"\x2b\x81", 0x04, b"x")])
         with mock.patch("netrecon.snmp.socket.socket", return_value=sock), \
                 mock.patch("sys.stderr", new=io.StringIO()):
             res = snmp_walk("127.0.0.1", "public", OID_SYSDESCR, timeout=0.1)
