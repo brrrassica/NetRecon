@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 
-from netrecon.config import DEFAULTS, load_config, merge, validate_timeout
-from netrecon.cli import _parse_ports, _parse_subnet
+from netrecon.config import (
+    DEFAULTS, load_config, merge, validate_timeout, validate_worker_count,
+)
+from netrecon.cli import _parse_ports, _parse_subnet, main
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "tests", "fixtures")
@@ -59,6 +63,34 @@ class TestValidateTimeout(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     validate_timeout(value)
+
+
+class TestValidateWorkerCount(unittest.TestCase):
+    def test_accepts_positive_integers(self):
+        for value in (1, 8, "12", 3.0):
+            with self.subTest(value=value):
+                self.assertEqual(validate_worker_count(value, "max_scan_workers"), int(value))
+
+    def test_rejects_bad_values(self):
+        for value in (0, -1, True, False, "abc", None, [], 1.5, float("nan"), float("inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    validate_worker_count(value, "max_scan_workers")
+
+    def test_error_names_field(self):
+        with self.assertRaises(ValueError) as ctx:
+            validate_worker_count(0, "max_scan_workers")
+        self.assertIn("max_scan_workers", str(ctx.exception))
+
+
+class TestMaxWorkersCli(unittest.TestCase):
+    def test_rejects_non_positive_values(self):
+        for value in ("0", "-1"):
+            with self.subTest(value=value):
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as ctx:
+                    main(["scan", "--max-workers", value])
+                self.assertEqual(ctx.exception.code, 2)
+
 
 class TestMerge(unittest.TestCase):
     def test_scalar_overwrite(self):

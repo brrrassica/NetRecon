@@ -95,6 +95,26 @@ def validate_timeout(value: Any, name: str = "timeout") -> float:
     return timeout
 
 
+def validate_worker_count(value: Any, name: str = "worker count") -> int:
+    """Return a positive thread-pool size, else raise ValueError.
+
+    Like port/timeouts, this accepts integer-like strings from JSON/CLI but
+    rejects bools, non-integral numbers and unparseable values before int()
+    can raise an uncaught TypeError/ValueError in the scanner.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"invalid {name}: {value!r}")
+    if isinstance(value, float) and not value.is_integer():
+        raise ValueError(f"{name} must be a positive integer: {value!r}")
+    try:
+        count = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(f"invalid {name}: {value!r}") from None
+    if count <= 0:
+        raise ValueError(f"{name} must be a positive integer: {value!r}")
+    return count
+
+
 # -- Loading helpers --------------------------------------------------------
 
 def merge(base: dict, overlay: dict) -> dict:

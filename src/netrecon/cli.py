@@ -14,7 +14,7 @@ import json
 import sys
 
 from . import __version__
-from .config import dump_default_config, validate_ports
+from .config import dump_default_config, validate_ports, validate_worker_count
 from .scanner import load_results, save_results, scan
 from .report import report_file
 from .snmp import run_snmp
@@ -124,6 +124,14 @@ def _parse_ports(s: str) -> list[int]:
     return out
 
 
+def _max_workers(s: str) -> int:
+    """argparse type for --max-workers: reject 0/negative/non-integer values."""
+    try:
+        return validate_worker_count(s, "max_workers")
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from None
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="netrecon", description="Pure-stdlib LAN network mapper (no root)."
@@ -142,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--connect-timeout", type=float)
     ps.add_argument("--ping-timeout", type=float)
     ps.add_argument("--banner-timeout", type=float)
-    ps.add_argument("--max-workers", type=int, help="override all thread pool sizes")
+    ps.add_argument("--max-workers", type=_max_workers, help="override all thread pool sizes (>=1)")
     ps.add_argument("--oui-file", help="path to Wireshark-format manuf.txt")
     ps.add_argument("--no-online-oui", action="store_true", help="disable api.macvendors.com fallback")
     ps.add_argument("--exclude", action="append", default=[], help="IP to exclude (repeatable)")

@@ -19,7 +19,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import __version__
-from .config import validate_ports, validate_timeout
+from .config import validate_ports, validate_timeout, validate_worker_count
 from .oui import OuiResolver
 
 
@@ -158,9 +158,12 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
         bt = validate_timeout(cfg.get("banner_timeout", 0.9), "banner_timeout")
     except (TypeError, ValueError) as e:
         raise SystemExit(f"[!] invalid timeout in config: {e}")
-    n_ping = int(cfg.get("max_ping_workers", 120))
-    n_scan = int(cfg.get("max_scan_workers", 256))
-    n_banner = int(cfg.get("max_banner_workers", 100))
+    try:
+        n_ping = validate_worker_count(cfg.get("max_ping_workers", 120), "max_ping_workers")
+        n_scan = validate_worker_count(cfg.get("max_scan_workers", 256), "max_scan_workers")
+        n_banner = validate_worker_count(cfg.get("max_banner_workers", 100), "max_banner_workers")
+    except (TypeError, ValueError) as e:
+        raise SystemExit(f"[!] invalid worker count in config: {e}")
 
     # ---- build target list + vlan/site metadata per subnet
     targets: list[str] = []

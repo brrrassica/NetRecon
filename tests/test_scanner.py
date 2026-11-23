@@ -125,6 +125,15 @@ class ScanE2ETest(unittest.TestCase):
                         scan({"subnets": [{"cidr": "127.0.0.1/32"}],
                               "ports": [], key: value}, quiet=True)
 
+    def test_invalid_worker_counts_rejected(self):
+        for key in ("max_ping_workers", "max_scan_workers", "max_banner_workers"):
+            for value in (0, -1, "abc", None, [], True):
+                with self.subTest(key=key, value=value):
+                    with self.assertRaises(SystemExit) as ctx:
+                        scan({"subnets": [{"cidr": "127.0.0.1/32"}],
+                              "ports": [], key: value}, quiet=True)
+                    self.assertIn(key, str(ctx.exception))
+
     def test_try_connect_bad_timeout_is_closed(self):
         self.assertFalse(try_connect("127.0.0.1", 22, -1))
 
