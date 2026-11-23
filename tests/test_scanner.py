@@ -134,6 +134,14 @@ class ScanE2ETest(unittest.TestCase):
                               "ports": [], key: value}, quiet=True)
                     self.assertIn(key, str(ctx.exception))
 
+    def test_invalid_http_ports_rejected(self):
+        for value in (80, [65536], [0], ["80"], [True], [None]):
+            with self.subTest(value=value):
+                with self.assertRaises(SystemExit) as ctx:
+                    scan({"subnets": [{"cidr": "127.0.0.1/32"}],
+                          "ports": [], "http_ports": value}, quiet=True)
+                self.assertIn("http_ports", str(ctx.exception))
+
     def test_try_connect_bad_timeout_is_closed(self):
         self.assertFalse(try_connect("127.0.0.1", 22, -1))
 

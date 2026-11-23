@@ -151,7 +151,14 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
     except (TypeError, ValueError) as e:
         raise SystemExit(f"[!] invalid ports in config: {e}")
     raw_http_ports = cfg.get("http_ports")
-    http_ports = set(raw_http_ports if raw_http_ports is not None else [80, 443])
+    try:
+        # Same validation path as `ports`; only a missing key gets the
+        # historical [80, 443] fallback (an explicit [] stays empty).
+        http_ports = set(validate_ports(
+            [80, 443] if raw_http_ports is None else raw_http_ports
+        ))
+    except (TypeError, ValueError) as e:
+        raise SystemExit(f"[!] invalid http_ports in config: {e}")
     try:
         ct = validate_timeout(cfg.get("connect_timeout", 0.35), "connect_timeout")
         pt = validate_timeout(cfg.get("ping_timeout", 1.0), "ping_timeout")
