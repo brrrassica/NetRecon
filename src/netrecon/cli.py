@@ -62,7 +62,7 @@ def _cmd_scan(args: argparse.Namespace) -> int:
 def _cmd_report(args: argparse.Namespace) -> int:
     from .config import load_config
 
-    cfg = load_config(args.config, None) if args.config else {}
+    cfg = load_config(args.config, None)
     extra_svcs = cfg.get("services") if isinstance(cfg, dict) else None
     if args.title:
         title = args.title
