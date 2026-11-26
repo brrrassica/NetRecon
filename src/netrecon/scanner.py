@@ -39,13 +39,14 @@ def local_ips() -> set[str]:
     except Exception:
         pass
     if not ips:  # fallback via UDP-connect trick
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("192.0.2.1", 9))  # no traffic sent
             ips.add(s.getsockname()[0])
-            s.close()
         except OSError:
             pass
+        finally:
+            s.close()
     return ips
 
 
@@ -181,7 +182,10 @@ def scan(cfg: dict, quiet: bool = False) -> dict:
         targets.extend(str(h) for h in net.hosts())
     targets = sorted(set(targets))
 
-    exclude = set(cfg.get("exclude_ips") or [])
+    raw_exclude = cfg.get("exclude_ips") or []
+    if isinstance(raw_exclude, str) or not isinstance(raw_exclude, (list, tuple, set)):
+        raise SystemExit(f"[!] invalid exclude_ips in config: {raw_exclude!r} (expected list of IPs)")
+    exclude = set(raw_exclude)
     exclude |= local_ips()
     targets = [t for t in targets if t not in exclude]
 
