@@ -108,6 +108,7 @@ def try_connect(ip: str, port: int, timeout: float) -> bool:
 
 
 def banner_grab(ip: str, port: int, timeout: float, http_ports: set[int], ua: str = "netrecon") -> str:
+    s = None
     try:
         s = socket.create_connection((ip, port), timeout=min(timeout + 0.3, 2.0))
         s.settimeout(timeout)
@@ -122,7 +123,6 @@ def banner_grab(ip: str, port: int, timeout: float, http_ports: set[int], ua: st
                 payload += chunk
         except socket.timeout:
             pass
-        s.close()
         text = payload.decode(errors="replace")
         first = text.splitlines()[0][:80] if text.splitlines() else ""
         m = re.search(r"(?im)^Server:\s*(.+)$", text)
@@ -133,6 +133,9 @@ def banner_grab(ip: str, port: int, timeout: float, http_ports: set[int], ua: st
         return " | ".join(dict.fromkeys(parts))[:200]
     except Exception:
         return ""
+    finally:
+        if s is not None:
+            s.close()
 
 
 # --------------------------------------------------------------------------- main scan
