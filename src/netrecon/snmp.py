@@ -114,6 +114,9 @@ def parse_response(data: bytes):
     tag, reqid, rest = parse_tlv(pdu)
     tag, err, rest = parse_tlv(rest)
     tag, idx, rest = parse_tlv(rest)
+    err_status = int.from_bytes(err, "big") if err else 0
+    if err_status != 0:
+        raise SnmpParseError(f"SNMP error status {err_status}")
     tag, vbseq, rest = parse_tlv(rest)
     out = []
     while vbseq:
